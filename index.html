@@ -1,0 +1,798 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Operation: Panda Stars</title><style>
+:root{--ink:#3b3347;--mut:#6b6278;--card:#fff;--pk:#ffd3e1;--lv:#e3d9ff;--pe:#ffe2cf;--bl:#d6ecff;--acc:#9c2f68;--on:#fff;--ch:#3a3340;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#f6eefc;--mut:#cfc5e6;--card:#2c2640;--pk:#4a2c47;--lv:#352e5c;--pe:#4d3a38;--bl:#27405a;--acc:#ffb3d1;--on:#1f1b2b}}
+:root[data-theme="dark"]{--ink:#f6eefc;--mut:#cfc5e6;--card:#2c2640;--pk:#4a2c47;--lv:#352e5c;--pe:#4d3a38;--bl:#27405a;--acc:#ffb3d1;--on:#1f1b2b}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;min-height:100vh;font:16px/1.5 system-ui,-apple-system,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--pk),var(--lv) 55%,var(--bl)) fixed}
+main{max-width:560px;margin:auto;padding:12px 14px 60px;position:relative}
+.c{background:var(--card);border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 4px 16px #3a334033}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .4em}
+button{font:inherit;color:var(--ink);background:var(--pe);border:2px solid var(--ch);border-radius:14px;padding:10px 14px;min-height:44px;margin:4px 2px;cursor:pointer}
+button:disabled{opacity:.5}.p{background:var(--acc);color:var(--on);border-color:var(--acc)}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+input,textarea{font:inherit;width:100%;padding:10px;border-radius:12px;border:2px solid var(--mut);background:var(--card);color:var(--ink);margin:6px 0}
+.g{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:8px}
+.t{font-size:24px;padding:10px 0;margin:0;width:100%}[aria-pressed=true]::before{content:"✓ "}[aria-pressed=true]{background:var(--lv)}
+.s{padding:4px;margin:0;border-width:1px;display:flex;flex-direction:column;align-items:center}
+.m{color:var(--mut);font-size:14px}.big{font-size:18px;font-weight:600;white-space:pre-line}
+.bar{height:12px;background:var(--lv);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc)}
+.r{display:block;width:100%;text-align:left;margin:4px 0;font-size:15px}.ghost{background:none;border:0;opacity:.6}
+.pop{animation:pop .8s both;text-align:center}
+#fx span{position:fixed;bottom:-30px;font-size:22px;opacity:.5;animation:fl 18s linear infinite;pointer-events:none}
+@keyframes fl{to{transform:translateY(-110vh) rotate(40deg)}}@keyframes pop{from{transform:scale(.2) rotate(-90deg);opacity:0}}@keyframes fall{to{transform:translateY(340px)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body><div id="fx" aria-hidden="true"></div><main id="app"></main><script>
+/* ===== CONFIG (edit here) ===== */
+const START='2026-10-30',N=51,BDAY='2026-12-20',KEY='panda26',DK='panda26dev',AK='panda26adm';
+/* PHASE 2 HOOK: on Dec 19 night, set P2.mount=(root,api)=>{...} (api: S,save,M,star,go). It runs from BDAY on and
+   never touches mission data or saved progress (localStorage key 'panda26'). Nothing birthday-related is built yet. */
+const P2={date:BDAY,mount:null};
+/* ===== MISSIONS: [title,type,config,starName,caption,flag] ===== */
+const M=[
+  [
+    "The First Impression File",
+    "bond",
+    {
+      "prompt": "Arshiya, what was your very first impression of Ravi? What has changed—or stayed the same—since then?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "The origin story, according to you."
+  ],
+  [
+    "Ravi in Three Words",
+    "bond",
+    {
+      "prompt": "Which three words describe Ravi best, and what made you choose them?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Three words. No overthinking the overthinker. 😂"
+  ],
+  [
+    "Choose His Strength",
+    "pick",
+    [
+      [
+        "Which strength do you think Ravi brings most naturally?",
+        [
+          "Kindness|Soft heart, solid choice.",
+          "Curiosity|Question machine detected.",
+          "Determination|Quiet persistence counts.",
+          "Creativity|Ideas incoming."
+        ]
+      ]
+    ],
+    "Star of Choose His Strength",
+    "A little adventure, one tiny star. There is no wrong personality answer."
+  ],
+  [
+    "The Tiny Memory Match",
+    "mem",
+    [
+      "🐼",
+      "🎋",
+      "⭐",
+      "🌸",
+      "💌",
+      "✨"
+    ],
+    "Star of The Tiny Memory Match",
+    "A little adventure, one tiny star. Find every matching pair."
+  ],
+  [
+    "One Thing You Like",
+    "bond",
+    {
+      "prompt": "What is one thing you genuinely like about Ravi that you may not tell him often?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A small appreciation can mean a lot."
+  ],
+  [
+    "The Excited-Ravi File",
+    "bond",
+    {
+      "prompt": "What topic, hobby, or project makes Ravi noticeably more excited when he talks about it?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Spot the sparkle in his voice."
+  ],
+  [
+    "Tea Detective",
+    "pick",
+    [
+      [
+        "A tiny fact-check: what does Panda prefer?",
+        [
+          "~Coffee|Nice guess—but not this time.",
+          "Tea|Correct! Tea wins this round.",
+          "~Juice|Plot twist denied."
+        ]
+      ]
+    ],
+    "Star of Tea Detective",
+    "A little adventure, one tiny star. One answer is based on a detail Ravi has shared."
+  ],
+  [
+    "The Little Cipher",
+    "text",
+    [
+      [
+        "Shift each letter in TEA forward by one place in the alphabet. What code appears?",
+        [
+          "ufb"
+        ],
+        "T→U, E→F, A→B."
+      ]
+    ],
+    "Star of The Little Cipher",
+    "A little adventure, one tiny star. A mini code, not a secret about anyone."
+  ],
+  [
+    "Panda Reflex Test",
+    "react",
+    0,
+    "Star of Panda Reflex Test",
+    "A little adventure, one tiny star. Wait for 🎋, then tap as quickly as you can."
+  ],
+  [
+    "Tiny Things, Big Smiles",
+    "bond",
+    {
+      "prompt": "What is one small thing Ravi does or says that makes you smile?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Tiny details, big points."
+  ],
+  [
+    "Bamboo Path Maze",
+    "maze",
+    [
+      ".....",
+      ".#.#.",
+      "...#.",
+      "..#..",
+      "....G"
+    ],
+    "Star of Bamboo Path Maze",
+    "A little adventure, one tiny star. Guide the panda through the path to the bamboo."
+  ],
+  [
+    "The Hidden Strength",
+    "bond",
+    {
+      "prompt": "What quality do you think Ravi underestimates in himself?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A kind reminder, from your point of view."
+  ],
+  [
+    "Panda Pattern Recall",
+    "seq",
+    5,
+    "Star of Panda Pattern Recall",
+    "A little adventure, one tiny star. Watch the colors and repeat the five-step sequence."
+  ],
+  [
+    "The Support Decoder",
+    "bond",
+    {
+      "prompt": "When Ravi is overthinking or having a rough day, what kind of support do you think would help him most—or what would you offer?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "No need to solve his whole universe. Just your honest thought."
+  ],
+  [
+    "Perfect Little Celebration",
+    "pick",
+    [
+      [
+        "Which low-key celebration sounds most like Ravi would enjoy?",
+        [
+          "Tea + a long chat|Cozy choice.",
+          "Anime + snacks|Certified chill.",
+          "A tiny adventure|Plot unlocked.",
+          "A handmade surprise|Personal touch."
+        ]
+      ]
+    ],
+    "Star of Perfect Little Celebration",
+    "A little adventure, one tiny star. Pick the vibe you imagine suits him."
+  ],
+  [
+    "Put the Panda Code in Order",
+    "order",
+    [
+      [
+        "P",
+        "A",
+        "N",
+        "D",
+        "A"
+      ],
+      "Code accepted! 🐼",
+      "Tap the letters in order: spell the name of Ravi’s panda nickname."
+    ],
+    "Star of Put the Panda Code in Order",
+    "A little adventure, one tiny star. A tiny sequencing lock."
+  ],
+  [
+    "A Gentle Suggestion",
+    "bond",
+    {
+      "prompt": "What is one thing you would gently suggest Ravi change or work on, and why? Keep it kind—or type “skip.”",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Honesty without hurting. “Skip” is always allowed."
+  ],
+  [
+    "Petal Memory Garden",
+    "mem",
+    [
+      "🌷",
+      "🌙",
+      "🎈",
+      "🧸",
+      "🍀",
+      "🪷"
+    ],
+    "Star of Petal Memory Garden",
+    "A little adventure, one tiny star. Find all the matching pairs."
+  ],
+  [
+    "The Ravi-ism",
+    "bond",
+    {
+      "prompt": "What is one funny or harmless habit that feels very Ravi?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Affectionate roast only. Court is now in session. 😂"
+  ],
+  [
+    "Hidden Star Search",
+    "hunt",
+    [
+      "🐼",
+      "⭐",
+      4,
+      5
+    ],
+    "Star of Hidden Star Search",
+    "A little adventure, one tiny star. Find all four stars hiding among the pandas."
+  ],
+  [
+    "A Moment to Keep",
+    "bond",
+    {
+      "prompt": "What conversation or ordinary moment with Ravi would you save in a tiny memory capsule?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "It can be a small moment, not a grand story."
+  ],
+  [
+    "Branch Clue Lock",
+    "text",
+    [
+      [
+        "Ravi studies ECE. Expand ECE as the name of his diploma branch.",
+        [
+          "electronics and communication engineering",
+          "electronic and communication engineering"
+        ],
+        "Think electronics + communication + engineering."
+      ]
+    ],
+    "Star of Branch Clue Lock",
+    "A little adventure, one tiny star. A real-life clue, with common wording variants accepted."
+  ],
+  [
+    "PANDA Cipher II",
+    "text",
+    [
+      [
+        "Shift every letter in PANDA forward by one. Enter the five-letter code.",
+        [
+          "qboeb"
+        ],
+        "P→Q, A→B, N→O, D→E, A→B."
+      ]
+    ],
+    "Star of PANDA Cipher II",
+    "A little adventure, one tiny star. Decode the panda signal."
+  ],
+  [
+    "The Overthinking Weather Report",
+    "bond",
+    {
+      "prompt": "What do you think Ravi tends to overthink most? If you are unsure or would rather not guess, “skip” is perfectly fine.",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "No pressure to read his mind."
+  ],
+  [
+    "Bamboo Balance",
+    "bal",
+    3,
+    "Star of Bamboo Balance",
+    "A little adventure, one tiny star. Tap when the moving panda enters the green zone—three times."
+  ],
+  [
+    "First Thing People Notice",
+    "bond",
+    {
+      "prompt": "What do you think someone new might notice first about Ravi?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Your outside-looking-in perspective."
+  ],
+  [
+    "Words for a Noisy Day",
+    "toggle",
+    [
+      [
+        "Choose at least three reminders you hope Ravi keeps close:",
+        [
+          "You matter",
+          "Rest is allowed",
+          "Small progress counts",
+          "Your ideas deserve a chance",
+          "You can ask for help",
+          "You do not have to be perfect"
+        ]
+      ],
+      3
+    ],
+    "Star of Words for a Noisy Day",
+    "A little adventure, one tiny star. Choose the reminders you would want him to remember."
+  ],
+  [
+    "Draw Panda’s Avatar",
+    "draw",
+    0,
+    "Star of Draw Panda’s Avatar",
+    "A little adventure, one tiny star. Sketch a silly, cool, or cute avatar for Ravi’s panda energy. Art skills are optional."
+  ],
+  [
+    "Give Yourself Credit",
+    "bond",
+    {
+      "prompt": "What is one thing Ravi should give himself more credit for?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A reminder he may need to hear."
+  ],
+  [
+    "If He Says “I’m Not Enough”",
+    "bond",
+    {
+      "prompt": "If Ravi ever doubts himself, what would you want him to hear from you?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Your words, your way. Skip is okay."
+  ],
+  [
+    "Pick the Panda Mood",
+    "pick",
+    [
+      [
+        "Which mood would you assign Ravi for a relaxed day?",
+        [
+          "Sleepy Panda|Blanket mode.",
+          "Curious Panda|One more question…",
+          "Chaotic Panda|Hide the snacks.",
+          "Peaceful Panda|Let the day breathe."
+        ]
+      ]
+    ],
+    "Star of Pick the Panda Mood",
+    "A little adventure, one tiny star. Just for fun—not a permanent diagnosis. 😂"
+  ],
+  [
+    "Moonlight Memory Match",
+    "mem",
+    [
+      "🌙",
+      "⭐",
+      "🪐",
+      "☁️",
+      "🌠",
+      "🌌"
+    ],
+    "Star of Moonlight Memory Match",
+    "A little adventure, one tiny star. Match the night-sky pairs."
+  ],
+  [
+    "The Moment Replay",
+    "bond",
+    {
+      "prompt": "What is one conversation or moment you wish you could replay for a minute?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Press replay on a memory, not on time."
+  ],
+  [
+    "A Thank-You or an Apology",
+    "bond",
+    {
+      "prompt": "Is there a thank-you, apology, or small truth you have wanted to share with Ravi? Only if you want to—“skip” is completely okay.",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A gentle open door, never an obligation."
+  ],
+  [
+    "The Keyboard Riddle",
+    "text",
+    [
+      [
+        "I have keys but no locks, space but no room, and you can enter but not go inside. What am I?",
+        [
+          "keyboard",
+          "a keyboard"
+        ],
+        "You may type on it."
+      ]
+    ],
+    "Star of The Keyboard Riddle",
+    "A little adventure, one tiny star. A classic riddle lock."
+  ],
+  [
+    "Panda Reflex: Remix",
+    "react",
+    0,
+    "Star of Panda Reflex: Remix",
+    "A little adventure, one tiny star. One more reaction round. Wait for the signal!"
+  ],
+  [
+    "What Makes This Bond Special",
+    "bond",
+    {
+      "prompt": "What makes your friendship with Ravi feel comfortable, meaningful, or uniquely yours?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Share only what feels right."
+  ],
+  [
+    "Choose a Tiny Hangout",
+    "pick",
+    [
+      [
+        "Pick a low-pressure hangout you think could be fun:",
+        [
+          "Tea and a walk|Simple and sweet.",
+          "Anime episode + snacks|Cozy quest.",
+          "A silly quiz battle|Competitive chaos.",
+          "Just talking|Underrated classic."
+        ]
+      ]
+    ],
+    "Star of Choose a Tiny Hangout",
+    "A little adventure, one tiny star. No plans booked—just imagine the vibe."
+  ],
+  [
+    "Star Hunt: Hard Mode",
+    "hunt",
+    [
+      "🎋",
+      "⭐",
+      6,
+      6
+    ],
+    "Star of Star Hunt: Hard Mode",
+    "A little adventure, one tiny star. Find six stars in the bigger bamboo patch."
+  ],
+  [
+    "Name This Chapter",
+    "bond",
+    {
+      "prompt": "If Ravi’s current life chapter had a title, what would you call it?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Make it funny, hopeful, dramatic—or all three."
+  ],
+  [
+    "Arrange the Pep Talk",
+    "order",
+    [
+      [
+        "KEEP",
+        "GOING"
+      ],
+      "Message assembled! 💌",
+      "Tap the words in order to build a tiny reminder for Panda."
+    ],
+    "Star of Arrange the Pep Talk",
+    "A little adventure, one tiny star. A little order puzzle."
+  ],
+  [
+    "Through Your Eyes",
+    "bond",
+    {
+      "prompt": "What is one good thing you wish Ravi could see about himself the way you see it?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A view from your side of the story."
+  ],
+  [
+    "Friendship Ingredients",
+    "toggle",
+    [
+      [
+        "Choose at least three ingredients for a strong friendship:",
+        [
+          "Trust",
+          "Laughter",
+          "Honesty",
+          "Patience",
+          "Respect",
+          "Shared chaos"
+        ]
+      ],
+      3
+    ],
+    "Star of Friendship Ingredients",
+    "A little adventure, one tiny star. Mix your friendship recipe."
+  ],
+  [
+    "Panda HQ Transmission",
+    "hack",
+    [
+      "📡 RECEIVE THE PANDA PING",
+      [
+        "Connecting to Panda HQ…",
+        "Signal found…",
+        "Loading one wholesome message…"
+      ],
+      "Agent Arshiya, no secret files were opened. Just a tiny reminder: your words can make an ordinary day feel special. 🐼"
+    ],
+    "Star of Panda HQ Transmission",
+    "A little adventure, one tiny star. A theatrical transmission, purely for fun."
+  ],
+  [
+    "One Small Way Forward",
+    "bond",
+    {
+      "prompt": "What is one small thing that could make your friendship with Ravi even better, without putting pressure on either of you?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A gentle idea, not a demand."
+  ],
+  [
+    "Unscramble the Hobby Clue",
+    "text",
+    [
+      [
+        "Unscramble IMANE into an interest connected to Panda’s hobby world.",
+        [
+          "anime"
+        ],
+        "Rearrange the letters."
+      ]
+    ],
+    "Star of Unscramble the Hobby Clue",
+    "A little adventure, one tiny star. One final word scramble."
+  ],
+  [
+    "The Curiosity Box",
+    "bond",
+    {
+      "prompt": "What is one thing about Ravi you are still curious to learn?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Friendship always has another page."
+  ],
+  [
+    "Open a Tiny Pep Note",
+    "flip",
+    [
+      "🎁",
+      [
+        "You don’t have to do everything today.",
+        "Your effort still counts on quiet days.",
+        "Your ideas deserve room to grow.",
+        "You can rest without earning it."
+      ],
+      4,
+      4
+    ],
+    "Star of Open a Tiny Pep Note",
+    "A little adventure, one tiny star. Open every note—keep whichever one you need."
+  ],
+  [
+    "The Quiet Respect File",
+    "bond",
+    {
+      "prompt": "What is one thing about Ravi you respect, even if you sometimes tease him about it?",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A sincere thought before the final note."
+  ],
+  [
+    "One Sentence to Carry",
+    "bond",
+    {
+      "prompt": "Before the final mission, leave Ravi one short sentence you hope he carries into his next chapter.",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "A little message before the big question."
+  ],
+  [
+    "🎓 FINAL MISSION — 8 MARKS",
+    "bond",
+    {
+      "prompt": "If you had one chance to tell Ravi everything you’ve wanted to say to him but never found the right words or moment for, what would you tell him? It could be something you appreciate about him, a memory you cherish, an apology, a wish, or simply something you hope he understands. Write your answer honestly, in your own words. There are no right or wrong answers—and you can skip anything you don’t want to share.",
+      "mode": "open",
+      "solution": ""
+    },
+    "Panda Star",
+    "Final mission complete. Heart over handwriting. 🐼❤️"
+  ]
+];
+const H={pick:'Tap your choices.',text:'Type your answer. Hints appear if needed.',mem:'Flip two cards at a time and find every pair.',react:'Wait for the signal, then tap.',seq:'Watch the colors, then repeat them.',pop:'Tap the targets. No pressure, every result counts.',flip:'Tap to open.',draw:'Doodle anything. Totally optional masterpiece.',order:'Tap the tiles in the right order.',hunt:'Tap the one that doesn’t belong.',maze:'Use the arrows to guide the panda to the bamboo.',toggle:'Tap everything that fits, then finish.',wish:'Write a wish, or skip it.',hack:'Tap the button. Purely theatrical, nothing is accessed.',tour:'Look how your galaxy is growing!',bal:'Tap when the 🐼 is inside the green zone.'};
+/* ===== helpers ===== */
+const $=s=>document.querySelector(s),R=$('#app'),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rd=k=>{try{return localStorage.getItem(k)}catch(e){return null}},wr=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+let dev=rd(DK);if(!/^\d{4}-\d\d-\d\d$/.test(dev||''))dev=null;
+const today=()=>dev||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata'}).format(new Date());
+const dn=d=>Date.parse(d+'T00:00:00Z')/864e5,rel=n=>new Date((dn(START)+n-1)*864e5).toISOString().slice(0,10);
+const fmt=d=>new Date(d+'T00:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',timeZone:'UTC'});
+const avail=()=>Math.max(0,Math.min(N,dn(today())-dn(START)+1));
+const blank=()=>({v:2,intro:0,title:'',wish:'',done:{},stars:{},responses:[],log:[]}),ok=n=>n>=1&&n<=N;
+const load=()=>{const s=blank();try{const o=JSON.parse(rd(KEY));if(o&&(o.v==1||o.v==2)){s.intro=+!!o.intro;s.title=String(o.title||'').slice(0,40);s.wish=String(o.wish||'').slice(0,1000);for(const k in o.done||{})if(ok(+k)&&+o.done[k])s.done[k]=+o.done[k];for(const k in o.stars||{})if(ok(+k))s.stars[k]=o.stars[k]=='admin'?'admin':'nat';if(Array.isArray(o.log))s.log=o.log.slice(-100).map(String);if(Array.isArray(o.responses))s.responses=o.responses.slice(-1500)}}catch(e){}return s};
+let S=load();const save=()=>wr(KEY,JSON.stringify(S)),cnt=()=>Object.keys(S.stars).length;
+let V=S.intro?'home':'intro',NN=0,adm=0,ask='',fails=0,lock=0,mi=0,cl=()=>{};
+const star=(n,on=1,z=56)=>`<svg viewBox="0 0 100 100" width="${z}" height="${z}" role="img" aria-label="Panda star ${n}${on?'':' (locked)'}"><polygon points="50,4 62,36 96,38 69,59 79,93 50,73 21,93 31,59 4,38 38,36" fill="${on?`hsl(${n*47%360} 85% 80%)`:'#c9c3d3'}" stroke="#3a3340" stroke-width="3" stroke-linejoin="round"/>${on?'<circle cx="30" cy="16" r="8" fill="#3a3340"/><circle cx="70" cy="16" r="8" fill="#3a3340"/><circle cx="40" cy="44" r="4" fill="#3a3340"/><circle cx="60" cy="44" r="4" fill="#3a3340"/><ellipse cx="50" cy="54" rx="4" ry="3" fill="#3a3340"/>':'<text x="50" y="62" text-anchor="middle" font-size="28" fill="#3a3340">?</text>'}</svg>`;
+const tone=a=>{try{const x=new(window.AudioContext||webkitAudioContext)();a.forEach((f,i)=>{const o=x.createOscillator(),g=x.createGain();o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(x.destination);o.start(x.currentTime+i*.45);o.stop(x.currentTime+i*.45+.3)})}catch(e){}};
+const shuf=a=>[...a].sort(()=>Math.random()-.5);
+/* ===== game engines: (element, config, done(msg), flag) ===== */
+const G={};
+G.pick=(el,c,done,fl)=>{let i=0,ch=[];const show=()=>{const[q,o,t]=c[i];el.innerHTML=`<h3>${esc(q)}</h3>${t?'<button data-s>🔊 Play sound (optional)</button>':''}`+o.map((x,k)=>`<button class="r" data-k="${k}">${esc(x.split('|')[0].replace(/^~/,''))}</button>`).join('')+'<p id="f" role="status" class="big"></p>';
+el.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.s)return tone(t);const raw=o[b.dataset.k],parts=raw.split('|'),l=parts[0],r=parts.slice(1).join('|'),objective=o.some(x=>x.split('|')[0].startsWith('~')),answer=objective?(o.find(x=>!x.split('|')[0].startsWith('~'))||'').split('|')[0]:'';
+const rec=(submitted,accepted)=>{S.responses=S.responses||[];S.responses.push({at:new Date().toISOString(),mission:NN,stage:i+1,prompt:q,submitted,accepted,solution:objective?answer:'Open choice; no fixed answer'});S.responses=S.responses.slice(-1500);save()};
+if(l[0]=='~'){rec(l.slice(1),false);$('#f').textContent='🙈 '+r;return}
+rec(l,objective?true:null);ch.push(l);el.onclick=null;el.querySelectorAll('button').forEach(x=>x.disabled=true);$('#f').textContent=r;
+if(i==c.length-1)done(fl?ch.join(' · '):'');else{el.insertAdjacentHTML('beforeend','<button class="p" data-n>Next</button>');el.onclick=e=>{if(e.target.closest('[data-n]')){i++;show()}}}}};show()};
+G.text=(el,c,done)=>{let i=0,w=0,bz=0;const show=()=>{w=0;bz=0;el.innerHTML=`<h3>${esc(c[i][0])}</h3><input id="t" autocomplete="off" aria-label="Your answer"><button class="p" data-g>Check</button><p id="f" role="status"></p>`};
+const nx=()=>{if(++i<c.length)show();else done('All challenge stages cleared!')};
+const chk=()=>{if(bz)return;const raw=$('#t').value.trim(),v=raw.toLowerCase().replace(/\s+/g,' '),[,a,h]=c[i],f=$('#f'),end=i==c.length-1;
+const norm=x=>String(x).toLowerCase().trim().replace(/\s+/g,' ');
+const hit=!!raw&&a.some(x=>norm(x)===v);
+S.responses=S.responses||[];S.responses.push({at:new Date().toISOString(),mission:NN,stage:i+1,prompt:c[i][0],submitted:raw.slice(0,220),accepted:hit,solution:a[0]});S.responses=S.responses.slice(-1500);save();
+if(hit){bz=1;f.textContent='✅ Lock opened!';end?done('All challenge stages cleared!'):setTimeout(nx,700)}
+else if(++w<3)f.textContent='Not quite. Re-examine the clue.'+(w>1?' Hint: '+h:'');
+else{bz=1;f.textContent='Reference answer: '+a[0];end?done('Challenge completed with a reveal.'):setTimeout(nx,1400)}};
+el.onclick=e=>{if(e.target.closest('[data-g]'))chk()};el.onkeydown=e=>{if(e.key==='Enter')chk()};show()};
+
+G.bond=(el,c,done)=>{const q=c.prompt,final=NN===N,limit=final?6000:1200;el.innerHTML=`<h3>${esc(q)}</h3><p class="m">${c.mode==='quiz'?'Puzzle lock · Solve the clue':final?'Final reflection · 8 marks · Write in your own words':'Open answer · No wrong answers here'}</p><textarea id="bond-answer" rows="${final?8:3}" maxlength="${limit}" placeholder="${c.mode==='quiz'?'Enter your solution…':final?'Your essay…':'Your answer…'}"></textarea><p class="m">${final?'Up to 6,000 characters. No marks are actually graded.':'You may type “skip” if you would rather not answer.'}</p><button class="p" data-bond-submit>Submit & continue</button><p id="bond-feedback" role="status"></p>`;
+const submit=()=>{const raw=$('#bond-answer').value.trim();if(!raw){$('#bond-feedback').textContent='Write an answer first, or enter “skip”.';return}
+const solution=c.solution||'';const norm=x=>String(x).toLowerCase().replace(/[^a-z0-9]/g,'');const accepted=c.mode==='quiz'?norm(raw)===norm(solution):null;
+S.responses=S.responses||[];S.responses.push({at:new Date().toISOString(),mission:NN,stage:1,prompt:q,submitted:raw.slice(0,limit),accepted,solution:solution||'Open response; no fixed answer'});S.responses=S.responses.slice(-1500);save();
+$('#bond-feedback').textContent=c.mode==='quiz'?(accepted?'🔓 Lock opened!':'Answer recorded. Check the clue or continue when ready.'):'💌 Answer saved. This one has no wrong answer.';
+el.querySelector('[data-bond-submit]').textContent='Continue';el.querySelector('[data-bond-submit]').onclick=()=>done(c.mode==='quiz'?(accepted?'Puzzle solved!':'Puzzle answer recorded.'):'Answer shared.');
+};
+el.querySelector('[data-bond-submit]').onclick=submit;};
+
+G.mem=(el,c,done)=>{const d=shuf([...c,...c]);let o=[],m=0,lk=0;el.innerHTML=`<div class="g" style="--n:4">${d.map((x,i)=>`<button class="t" data-i="${i}" aria-label="Card ${i+1}">❔</button>`).join('')}</div>`;
+el.onclick=e=>{const b=e.target.closest('.t');if(!b||lk||b.disabled||o[0]==b)return;b.textContent=d[b.dataset.i];o.push(b);if(o.length==2){lk=1;const[a,z]=o;setTimeout(()=>{if(a.textContent==z.textContent){a.disabled=z.disabled=true;m++}else a.textContent=z.textContent='❔';o=[];lk=0;if(m==c.length)done('All pairs found!')},650)}}};
+G.react=(el,c,done)=>{el.innerHTML='<button class="p big" id="r" style="width:100%;height:150px"></button>';const b=$('#r');let t0,to;
+const arm=()=>{t0=0;b.textContent='Wait for it… 🐼';to=setTimeout(()=>{t0=performance.now();b.textContent='TAP NOW! 🎋'},1000+Math.random()*2000)};
+b.onclick=()=>{if(!t0){clearTimeout(to);b.textContent='Too early! 😆 Try again…';to=setTimeout(arm,900);return}const ms=Math.round(performance.now()-t0);b.onclick=null;done(`${ms} ms. Official rating: Speedy Panda ⚡`)};cl=()=>clearTimeout(to);arm()};
+G.seq=(el,c,done)=>{const C=['#ff9bbd','#b9a4ff','#9ad7ff','#ffd29b'],Nm=['Pink','Purple','Blue','Orange'];let s=[],p=0,bz=1;
+el.innerHTML=`<p id="f" role="status">Watch…</p><div class="g" style="--n:2">${C.map((x,i)=>`<button data-i="${i}" style="background:${x};height:80px;color:#3a3340;margin:0">${Nm[i]}</button>`).join('')}</div>`;
+const fl=i=>{const b=el.children[1].children[i];b.style.outline='5px solid #3a3340';setTimeout(()=>b.style.outline='',350)};
+const play=()=>{bz=1;p=0;$('#f').textContent='Watch…';s.forEach((v,k)=>setTimeout(()=>fl(v),600+k*650));setTimeout(()=>{bz=0;$('#f').textContent='Your turn!'},600+s.length*650)};
+const add=()=>{s.push(Math.floor(Math.random()*4));play()};
+el.onclick=e=>{const b=e.target.closest('[data-i]');if(!b||bz)return;const i=+b.dataset.i;fl(i);if(i!=s[p]){bz=1;$('#f').textContent='Oops! Watch again 🐼';setTimeout(play,900);return}
+if(++p==s.length){if(s.length==c){done('Sequence complete!');return}bz=1;$('#f').textContent='Nice!';setTimeout(add,800)}};add()};
+G.pop=(el,c,done)=>{const[em,need,sec,fall]=c;let n=0,t=sec,fin=0,iv,sp;el.innerHTML=`<p id="f" role="status">0 / ${need} · ${t}s</p><div id="a" style="position:relative;height:300px;overflow:hidden;border-radius:16px;background:var(--bl)"></div>`;
+const a=$('#a'),upd=()=>{$('#f').textContent=`${n} / ${need} · ${t}s`;if(!fin&&(n>=need||t<=0)){fin=1;clearInterval(iv);clearInterval(sp);a.innerHTML='';done(n>=need?`You popped ${n}!`:`Time’s up: ${n} popped. Totally counts! 🐼`)}};
+sp=setInterval(()=>{const b=document.createElement('button');b.textContent=em;b.setAttribute('aria-label','Pop');b.style.cssText=`position:absolute;left:${Math.random()*80}%;${fall?'top:-50px;animation:fall 3s linear forwards':'top:'+Math.random()*80+'%'};font-size:30px;padding:0;min-height:48px;min-width:48px;background:none;border:0`;b.onclick=()=>{b.remove();n++;upd()};a.append(b);setTimeout(()=>b.remove(),fall?3000:2200)},fall?700:600);
+iv=setInterval(()=>{t--;upd()},1000);cl=()=>{clearInterval(iv);clearInterval(sp)}};
+G.flip=(el,c,done)=>{const[em,m,need,k]=c,ms=shuf(m).slice(0,k||m.length);let r=0;el.innerHTML=`<div class="g" style="--n:${Math.min(ms.length,3)}">${ms.map((x,i)=>`<button class="t" data-i="${i}" aria-label="Open ${i+1}">${em}</button>`).join('')}</div><div id="f" role="status"></div>`;
+el.onclick=e=>{const b=e.target.closest('.t');if(!b||b.disabled)return;b.disabled=true;$('#f').insertAdjacentHTML('beforeend',`<p class="c">${esc(ms[b.dataset.i])}</p>`);if(++r>=need)done()}};
+G.draw=(el,c,done)=>{el.innerHTML='<canvas id="cv" width="500" height="300" style="width:100%;touch-action:none;background:#fff;border-radius:14px;border:2px solid var(--ch)" aria-label="Drawing area"></canvas><button data-c>Clear</button><button class="p" data-d>I’m done 🐼</button>';
+const cv=$('#cv'),x=cv.getContext('2d');x.lineWidth=5;x.lineCap='round';x.strokeStyle='#3a3340';let on=0;const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*500/r.width,(e.clientY-r.top)*300/r.height]};
+cv.onpointerdown=e=>{on=1;cv.setPointerCapture(e.pointerId);const[a,b]=pt(e);x.beginPath();x.moveTo(a,b);x.lineTo(a+.1,b);x.stroke()};cv.onpointermove=e=>{if(!on)return;const[a,b]=pt(e);x.lineTo(a,b);x.stroke()};cv.onpointerup=()=>on=0;
+el.onclick=e=>{if(e.target.closest('[data-c]'))x.clearRect(0,0,500,300);if(e.target.closest('[data-d]'))done('Nice doodle!')}};
+G.order=(el,c,done)=>{const[it,msg,h]=c;let t=shuf(it),k=0;el.innerHTML=`<p>${esc(h)}</p><p id="b" class="big" aria-live="polite">·</p><div class="g" style="--n:${Math.min(it.length,5)}">${t.map((x,i)=>`<button class="t" data-i="${i}">${esc(x)}</button>`).join('')}</div><p id="f" role="status"></p>`;
+el.onclick=e=>{const b=e.target.closest('.t');if(!b||b.disabled)return;if(b.textContent==it[k]){b.disabled=true;k++;$('#b').textContent=it.slice(0,k).join(' ');$('#f').textContent='';if(k==it.length)done(msg)}else $('#f').textContent='Not that one yet. Try another 🐼'}};
+G.hunt=(el,c,done)=>{const[d,t,n,w]=c,T=w*w,P=new Set;while(P.size<n)P.add(Math.floor(Math.random()*T));let f=0;
+el.innerHTML=`<p id="f" role="status">Found 0 / ${n}</p><div class="g" style="--n:${w}">${Array.from({length:T},(_,i)=>`<button class="t" data-i="${i}" aria-label="Spot ${i+1}">${P.has(i)?t:d}</button>`).join('')}</div>`;
+el.onclick=e=>{const b=e.target.closest('.t');if(!b||b.disabled)return;if(P.has(+b.dataset.i)){b.disabled=true;$('#f').textContent=`Found ${++f} / ${n} ✨`;if(f==n)done()}else $('#f').textContent='Just a '+d+' 🙈 keep looking!'}};
+G.maze=(el,c,done)=>{let r=0,q=0;const dr=()=>{$('#m').innerHTML=c.map((row,i)=>[...row].map((ch,j)=>`<div style="aspect-ratio:1;display:grid;place-items:center;border-radius:8px;font-size:24px;background:${ch=='#'?'var(--ch)':'var(--lv)'}">${i==r&&j==q?'🐼':ch=='G'?'🎋':''}</div>`).join('')).join('')};
+el.innerHTML='<div id="m" class="g" style="--n:5;max-width:280px;margin:auto"></div><div style="text-align:center;margin-top:8px"><button data-d="-1,0" aria-label="Up">⬆️</button><br><button data-d="0,-1" aria-label="Left">⬅️</button><button data-d="1,0" aria-label="Down">⬇️</button><button data-d="0,1" aria-label="Right">➡️</button></div>';dr();
+el.onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;const[x,y]=b.dataset.d.split(',').map(Number),a=r+x,z=q+y;if(c[a]&&c[a][z]&&c[a][z]!='#'){r=a;q=z;dr();if(c[r][q]=='G')done('Bamboo reached! 🎋')}}};
+G.toggle=(el,c,done)=>{const[it,min]=c,s=new Set;el.innerHTML=`<div class="g" style="--n:3">${it.map((x,i)=>`<button class="t" style="font-size:15px;padding:10px 4px" data-i="${i}" aria-pressed="false">${esc(x)}</button>`).join('')}</div><button class="p" data-d disabled>Pick at least ${min}</button>`;
+el.onclick=e=>{const b=e.target.closest('[data-i]'),d=e.target.closest('[data-d]');if(b){const i=+b.dataset.i;s.has(i)?s.delete(i):s.add(i);b.setAttribute('aria-pressed',s.has(i));const D=el.querySelector('[data-d]');D.disabled=s.size<min;D.textContent=s.size<min?'Pick at least '+min:'Done ✨'}else if(d&&!d.disabled)done([...s].map(i=>it[i]).join(' · '))}};
+G.wish=(el,c,done)=>{el.innerHTML=`<textarea id="w" rows="5" maxlength="1000" aria-label="Your wish (optional)" placeholder="Dear future me…">${esc(S.wish||'')}</textarea><p class="m">🔒 Stays only on this device. Nobody else sees it.</p><button class="p" data-d>Seal my wish</button>`;el.onclick=e=>{if(e.target.closest('[data-d]')){S.wish=$('#w').value.slice(0,1000);done('Wish sealed 🌠')}}};
+G.hack=(el,c,done)=>{const[l,ln,p]=c;el.innerHTML=`<button class="p big" data-g>${esc(l)}</button><pre id="h" hidden style="white-space:pre-wrap;background:#1f1b2b;color:#9ef0c0;padding:10px;border-radius:12px"></pre>`;
+el.onclick=e=>{if(!e.target.closest('[data-g]'))return;el.onclick=null;const h=$('#h');h.hidden=false;ln.forEach((s,i)=>setTimeout(()=>h.textContent+=s+'\n',i*700));setTimeout(()=>{h.textContent+='(pretend only, nothing was accessed 🐼)';el.insertAdjacentHTML('beforeend',`<p class="c big">${esc(p)}</p>`);done()},ln.length*700+400)}};
+G.bal=(el,c,done)=>{let x=0,d=1,h=0,z=35+Math.random()*30,raf;el.innerHTML=`<div style="position:relative;height:36px;background:var(--lv);border-radius:18px;overflow:hidden"><i id="z" style="position:absolute;top:0;height:100%;background:#8fd9a8;left:${z}%;width:24%"></i><b id="k" style="position:absolute;top:2px;font-size:26px;line-height:32px">🐼</b></div><button class="p big" data-g style="width:100%">TAP!</button><p id="f" role="status">0 / 3</p>`;
+const k=$('#k'),lp=()=>{x+=d*.6;if(x>92||x<0)d=-d;k.style.left=x+'%';raf=requestAnimationFrame(lp)};lp();cl=()=>cancelAnimationFrame(raf);
+el.onclick=e=>{if(!e.target.closest('[data-g]'))return;if(x>z-3&&x<z+24){h++;$('#f').textContent=h+' / 3 ✨';z=10+Math.random()*55;$('#z').style.left=z+'%'}else $('#f').textContent=h+' / 3 · Wobble! Try again 🐼';if(h>=3){cl();done('Perfectly balanced!')}}};
+G.tour=(el,c,done)=>{el.innerHTML=galGrid()+'<p id="sd" role="status" class="m">Tap a star. Replay any mission from Home.</p><button class="p" data-d>Finish tour 🌌</button>';el.onclick=e=>{if(e.target.closest('[data-d]'))done('Tour complete!')}};
+/* ===== completion ===== */
+function finish(n,msg){const g=$('#game');g.onclick=g.onkeydown=null;cl();cl=()=>{};// Mission 1 is a reflection prompt, not an agent-name field.
+if(!S.done[n])S.done[n]=Date.now();const nw=!S.stars[n];if(nw)S.stars[n]='nat';save();const m=M[n-1];
+g.insertAdjacentHTML('beforeend',(msg?`<p class="big">${esc(msg)}</p>`:'')+`<div id="sc" style="text-align:center;margin-top:10px">`+(nw?`<h2>NEW STAR DISCOVERED ✨</h2><div class="pop">${star(n,1,110)}</div><h3>${m[3]}</h3><p>“${m[4]}”</p>`:`<h2>Mission complete 🐼</h2><p>This star is already in your galaxy, so no extra star this time.</p>`)+`<p>${cnt()} / 51 Panda Stars Collected</p><button class="p" data-a="gal">See my galaxy</button><button data-a="home">Home</button></div>`);$('#sc').scrollIntoView({block:'center'})}
+/* ===== views ===== */
+const L=['Hi! I’m your panda. I’m not a great secret agent, but I’m a very enthusiastic one. 🐼','My mission: deliver one tiny adventure a day, from October 30 to December 19.','Every adventure earns a panda star. 51 stars in total will fill your galaxy. ✨','Miss a day? No problem. Everything stays open for whenever you like.','Ready when you are, agent!'];
+const vi=()=>`<section class="c"><h1>PSST... A SECRET MISSION FOR YOU 🐼</h1><p class="big" style="font-weight:400">Hey Arshiya!\n\nSomeone has secretly prepared a tiny adventure for you.\n\nFrom October 30 onward, a new little mission appears each day.\n\nComplete missions, collect panda stars, discover surprises, and enjoy the countdown.\n\nAnd don’t worry… this panda has absolutely no qualifications to be a secret agent.</p><button class="p" data-a="start">START THE ADVENTURE</button><button data-a="meet">Meet Your Panda</button></section>`;
+const vm=()=>`<section class="c"><div style="font-size:64px;text-align:center" aria-hidden="true">🐼</div><p class="big" role="status">${L[mi]}</p><button class="p" data-a="nx">${mi<L.length-1?'Next':'Start the adventure'}</button></section>`;
+const vh=()=>{const a=avail(),d=Math.ceil(dn(BDAY)-dn(today())),c=cnt(),todo=[];for(let i=1;i<a;i++)if(!S.done[i])todo.push(i);
+return `<section class="c"><h2>Agent ${esc(S.title||'Recruit')} Arshiya 🐼</h2><p>${c} / 51 Panda Stars Collected</p><div class="bar" role="img" aria-label="${c} of 51 stars"><i style="width:${c*100/N}%"></i></div><p class="m">${c?'Your galaxy is growing!':'Your galaxy is waiting for its first star.'} No rush, agent.</p>${d>0?`<p class="big">⏳ ${d} day${d>1?'s':''} until December 20</p>`:''}${dev?`<p class="m">Preview date active: ${dev}</p>`:''}<button data-a="gal">🌌 My galaxy</button></section>`
++(a?`<section class="c"><h3>Today’s mission</h3><button class="p r" data-a="play" data-n="${a}">${a}. ${M[a-1][0]} · ${S.done[a]?'✅ replay':'start'}</button></section>`:`<section class="c"><h3>Mission 1 opens ${fmt(START)}</h3><p>Come back then for your first panda star!</p></section>`)
++(todo.length?`<details class="c"><summary>Catch-up adventures (${todo.length})</summary><p class="m">Pick up wherever you like.</p>${todo.map(i=>`<button class="r" data-a="play" data-n="${i}">${i}. ${M[i-1][0]}</button>`).join('')}</details>`:'')
++`<details class="c"><summary>Mission history</summary>${M.map((m,i)=>{const n=i+1;return n<=a?`<button class="r" data-a="play" data-n="${n}">${S.done[n]?'✅':S.stars[n]?'⭐':'○'} ${n}. ${m[0]}</button>`:`<div class="m">🔒 ${n}. Opens ${fmt(rel(n))}</div>`}).join('')}</details>`
++`<details class="c" open><summary>How it works</summary><p>One tiny mission a day, ${fmt(START)} to 19 Dec. Each gives one panda star: 51 in all. Missed a day? Everything stays open. Progress is saved on this device only (clearing browser data erases it).</p></details>`};
+const galGrid=()=>`<div class="g" style="--n:6">${M.map((m,i)=>`<button class="s" data-a="sd" data-n="${i+1}" aria-label="Star ${i+1}, ${S.stars[i+1]?m[3]:'not collected yet'}">${star(i+1,!!S.stars[i+1],44)}<small>${i+1}</small></button>`).join('')}</div>`;
+const vg=()=>`<section class="c"><button data-a="home">← Home</button><h2>Your Galaxy 🌌</h2><p>${cnt()} / 51 Panda Stars Collected</p><div class="bar"><i style="width:${cnt()*100/N}%"></i></div></section><section class="c">${galGrid()}<p id="sd" role="status" class="m">Tap a star to see its story.</p></section>`;
+const vx=()=>{const m=M[NN-1];return `<section class="c"><button data-a="home">← Home</button><h2>Mission ${NN}: ${m[0]}</h2><p class="m">${fmt(rel(NN))} · ${H[m[1]]}</p>${S.done[NN]?'<p>✅ Completed before. Replays never add extra stars.</p>':''}</section><section class="c" id="game"></section>`};
+const vo=()=>{let c=null;try{c=JSON.parse(rd(AK))}catch(e){}return `<section class="c"><h2>OWNER ACCESS</h2><p class="m">Local test shortcut for this device only. It is not real security: a static page can’t hide secrets. Production needs a backend or serverless login.</p><label>${c?'Passcode':'Choose a local test passcode'}<input id="pw" type="password" autocomplete="off"></label><p id="f" role="alert"></p><button class="p" data-a="login">${c?'Unlock admin dashboard':'Set passcode & unlock'}</button><button data-a="home">Back</button></section>`};
+const va=()=>{let nat=0,ad=0;for(const k in S.stars)S.stars[k]=='admin'?ad++:nat++;const q={grant:['Grant all 51 Panda Stars?','This will fill the star collection for testing.\n\nIt will not mark every mission as completed.\n\nContinue?','GRANT ALL STARS'],reset:['Reset test progress?','Clears mission completions, stars, agent title and wish on THIS device only. The local audit log, mission content and your passcode stay.\n\nContinue?','RESET']}[ask];
+return `<section class="c"><h2>PANDA STAR CONTROL 🔐</h2><p class="m">Device-local owner gate only. A static website cannot prove identity or send entries from a separate phone to you. Anyone with access to this browser storage may inspect or alter it. Remote private reporting needs an authenticated backend.</p><p>Total stars: 51 · Collected: ${cnt()} · Remaining: ${N-cnt()}<br>Completed missions: ${Object.keys(S.done).length}<br>Naturally earned: ${nat} · Admin-granted: ${ad}<br>Birthday reveal: not part of this version</p>`
++(q?`<div role="alertdialog" aria-label="${q[0]}"><h3>${q[0]}</h3><p class="big" style="font-weight:400">${q[1]}</p><button data-a="ask" data-k="">CANCEL</button><button class="p" data-a="yes">${q[2]}</button></div>`:`<button class="p" data-a="ask" data-k="grant">GRANT ALL 51 STARS</button><button data-a="ask" data-k="reset">RESET TEST PROGRESS</button>`)
++`<label>Preview date (YYYY-MM-DD)<input id="dv" value="${dev||''}" placeholder="${today()}"></label><button data-a="dset">Set preview</button><button data-a="dclr">Clear preview</button><button data-a="exit">EXIT ADMIN MODE</button></section><section class="c"><h3>ALL 51 MISSIONS · PRE-SEND REVIEW</h3><p class="m">Review every reflection prompt, puzzle clue, and answer key before sharing. Open questions have no right answer; only the marked trivia/puzzle locks use fixed solutions.</p>${M.map((m,i)=>{const n=i+1,[title,type,cfg]=m;let details='';if(type==='bond')details=`<p>${esc(cfg.prompt)}</p><p>${cfg.mode==='quiz'?'Puzzle answer: '+esc(cfg.solution):'Open response · no fixed answer'}</p>`;else if(type==='text')details=cfg.map((x,j)=>`<p><b>Stage ${j+1}:</b> ${esc(x[0])}<br>Accepted: ${esc(x[1].join(' / '))}<br><small>Hint: ${esc(x[2])}</small></p>`).join('');else if(type==='pick')details=cfg.map(x=>`<p><b>${esc(x[0])}</b><br>${x[1].map(o=>{const key=o.split('|')[0],label=key.replace(/^~/,'');const keyed=x[1].some(y=>y.split('|')[0].startsWith('~'));return esc((keyed?(key.startsWith('~')?'✗ ':'✓ '):'• ')+label)}).join(' · ')}</p>`).join('');else if(type==='order')details=`<p>Correct sequence: <b>${esc(cfg[0].join(' → '))}</b><br>${esc(cfg[2])}</p>`;else if(type==='mem')details=`<p>Match pairs: ${esc(cfg.join(' · '))}</p>`;else if(type==='hunt')details=`<p>Find ${cfg[2]} of ${esc(cfg[1])} among ${esc(cfg[0])} · ${cfg[3]}×${cfg[3]} board</p>`;else if(type==='toggle')details=`<p>${esc(cfg[0][0])}<br>Options: ${esc(cfg[0][1].join(' · '))}<br>Minimum picks: ${cfg[1]}</p>`;else if(type==='flip')details=`<p>Reveal all notes: ${esc(cfg[1].join(' · '))}</p>`;else if(type==='hack')details=`<p>${esc(cfg[0])}<br>${esc(cfg[1].join(' → '))}<br>Final message: ${esc(cfg[2])}</p>`;else if(type==='maze')details=`<p>Maze map (# = wall): ${esc(cfg.join(' / '))}</p>`;else if(type==='seq')details=`<p>Repeat a ${cfg}-step color sequence.</p>`;else if(type==='pop')details=`<p>Pop ${cfg[1]} targets within ${cfg[2]} seconds.</p>`;else if(type==='bal')details=`<p>Hit the moving green zone ${cfg} times.</p>`;else if(type==='draw')details=`<p>Optional doodle canvas.</p>`;else if(type==='react')details=`<p>Reaction-timing mini-game.</p>`;return `<article class="m" style="padding:12px;border-bottom:1px solid var(--ch)"><b>${n}. ${esc(title)} · ${esc(type)}</b>${details}<p>State: ${S.done[n]?'Completed':'Not completed'} · Star: ${S.stars[n]?'Collected':'Uncollected'}</p></article>`}).join('')}<button data-a="exportQuestions">EXPORT QUESTION REVIEW</button></section><section class="c"><h3>Stars & missions</h3>${M.map((m,i)=>{const n=i+1;return `<div class="m">${n}. ${m[0]}: ${S.done[n]?'Completed naturally':'Not completed'} · ${S.stars[n]=='admin'?'star granted by admin':S.stars[n]?'star earned':'no star'}</div>`}).join('')}${S.log.length?`<h3>Audit (local)</h3>${S.log.map(l=>`<div class="m">${esc(l)}</div>`).join('')}`:''}</section><section class="c"><h3>MISSION ANSWER LEDGER</h3><p class="m">Entries stored in this browser: stage, answer, result, and reference solution. A static site cannot sync to another phone automatically; use export/import below for manual review.</p>${(S.responses||[]).slice().reverse().map(r=>`<article class="m" style="padding:10px;border-bottom:1px solid var(--ch)"><b>Mission ${r.mission} · Stage ${r.stage} · ${esc(r.at)}</b><p>${esc(r.prompt)}</p><p>Answer: <b>${esc(r.submitted||'(blank)')}</b></p><p>${r.accepted===true?'✅ Accepted':r.accepted===false?'❌ Not accepted':'💌 Open response / no right or wrong'} · Solution: <b>${esc(r.solution||'—')}</b></p></article>`).join('')||'<p>No answers recorded yet.</p>'}<button data-a="export">EXPORT ANSWER LEDGER</button><p class="m">If Arshiya plays on another phone, ask her to export her ledger there and send you the JSON file. Then import it here.</p><label>Import Arshiya’s ledger<input id="ledgerFile" type="file" accept=".json,application/json"></label><button data-a="import">IMPORT ANSWER LEDGER</button><p id="importStatus" role="status"></p></section>`};
+const views={intro:vi,meet:vm,home:vh,gal:vg,mis:vx,owner:vo,admin:va};
+function render(){if(P2.mount&&today()>=P2.date)return P2.mount(R,{S,save,M,star,go});if(V=='admin'&&!adm)V='owner';
+R.innerHTML=views[V]()+(V=='intro'?'':'<footer style="text-align:center"><button class="ghost" data-a="owner" aria-label="Owner access">🔒</button></footer>');
+if(V=='mis'){const m=M[NN-1];G[m[1]]($('#game'),m[2],g=>finish(NN,g),m[5])}}
+const go=(v,n)=>{cl();cl=()=>{};V=v;NN=n||0;ask='';render();scrollTo(0,0)};
+/* ===== actions ===== */
+const A={home:()=>go('home'),gal:()=>go('gal'),owner:()=>go(adm?'admin':'owner'),meet:()=>{mi=0;go('meet')},start:()=>{S.intro=1;save();go('home')},nx:()=>{++mi<L.length?render():A.start()},
+play:d=>{const n=+d.n;if(ok(n)&&n<=avail())go('mis',n)},
+sd:d=>{const n=+d.n,m=M[n-1];$('#sd').innerHTML=S.stars[n]?`<b>${m[3]}</b><br>“${m[4]}”<br><small>Mission ${n} · ${S.stars[n]=='admin'?'granted by owner':'earned by playing'}</small>`:`Star ${n} comes with Mission ${n} (opens ${fmt(rel(n))}).`},
+ask:d=>{ask=d.k;render()},
+yes:()=>{const t=new Date().toISOString();if(ask=='grant'){for(let n=1;n<=N;n++)if(!S.stars[n])S.stars[n]='admin';S.log.push(t+' granted all stars')}else if(ask=='reset'){S.done={};S.stars={};S.title='';S.wish='';S.log.push(t+' reset test progress')}S.log=S.log.slice(-30);save();ask='';render()},
+dset:()=>{const v=$('#dv').value.trim();if(/^\d{4}-\d\d-\d\d$/.test(v)){dev=v;wr(DK,v);render()}},dclr:()=>{dev=null;wr(DK,null);render()},exportQuestions:()=>{const blob=new Blob([JSON.stringify(M.map((m,i)=>({mission:i+1,title:m[0],type:m[1],config:m[2],starName:m[3],caption:m[4]})),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='panda-stars-question-review.json';a.click();URL.revokeObjectURL(url)},export:()=>{const blob=new Blob([JSON.stringify({schemaVersion:1,project:'Operation Panda Stars',exportedAt:new Date().toISOString(),entries:S.responses||[]},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='panda-stars-answer-ledger.json';a.click();URL.revokeObjectURL(url)},import:async()=>{const input=$('#ledgerFile'),f=input&&input.files&&input.files[0],status=$('#importStatus');if(!f){if(status)status.textContent='Choose an answer-ledger JSON file first.';return}try{const parsed=JSON.parse(await f.text()),items=Array.isArray(parsed)?parsed:parsed.entries;if(!Array.isArray(items))throw new Error('This file does not contain an answer ledger.');const clean=items.slice(-1500).filter(r=>r&&Number.isInteger(+r.mission)&&+r.mission>=1&&+r.mission<=N&&typeof r.prompt==='string'&&typeof r.submitted==='string').map(r=>({at:String(r.at||'Imported').slice(0,80),mission:+r.mission,stage:Math.max(1,Math.min(99,+r.stage||1)),prompt:r.prompt.slice(0,600),submitted:r.submitted.slice(0,6000),accepted:typeof r.accepted==='boolean'?r.accepted:null,solution:String(r.solution||'').slice(0,600)}));const key=r=>[r.at,r.mission,r.stage,r.prompt,r.submitted].join('|');const seen=new Set((S.responses||[]).map(key));let added=0;for(const r of clean){if(!seen.has(key(r))){S.responses.push(r);seen.add(key(r));added++}}S.responses=S.responses.slice(-1500);S.log.push(new Date().toISOString()+' imported '+added+' answer entries');S.log=S.log.slice(-30);save();render();const st=$('#importStatus');if(st)st.textContent='Imported '+added+' new entries. Existing duplicates were skipped.'}catch(e){if(status)status.textContent='Import failed: '+e.message}},exit:()=>{adm=0;go('home')},
+login:async()=>{const f=$('#f'),p=$('#pw').value;if(Date.now()<lock){f.textContent='Too many tries. Wait a moment.';return}if(p.length<4){f.textContent='Use at least 4 characters.';return}
+let c=null;try{c=JSON.parse(rd(AK))}catch(e){}const hs=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s+p)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+try{if(!c){const s=[...crypto.getRandomValues(new Uint8Array(8))].join('');wr(AK,JSON.stringify({s,h:await hs(s)}));adm=1}else if(await hs(c.s)==c.h)adm=1}catch(e){f.textContent='This needs a secure (https) browser.';return}
+if(adm){fails=0;go('admin')}else{if(++fails>=5){lock=Date.now()+3e4;fails=0}f.textContent='Invalid passcode.'}}};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&A[b.dataset.a])A[b.dataset.a](b.dataset)});
+$('#fx').innerHTML=['✨','⭐','🎋','☁️','🌸','🐼'].map((e,i)=>`<span style="left:${8+i*16}%;animation-delay:${-i*3}s">${e}</span>`).join('');
+render();
+</script></body></html>
